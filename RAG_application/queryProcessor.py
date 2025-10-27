@@ -1,49 +1,38 @@
-from transformers import AutoModelForSeq2SeqLM, AutoTokenizer, pipeline
-from langchain_community.llms import HuggingFacePipeline
+from langchain_groq import ChatGroq
 from langchain_core.prompts import PromptTemplate
-from sklearn.metrics.pairwise import cosine_similarity
-import numpy as np
-from storage_and_retrieval import embedding_model
-from langchain.chains import LLMChain
+import os
+from dotenv import load_dotenv
 
-# model name to use for text generation
-model_name = "google/flan-t5-base"
+# Load environment variables from .env file
+load_dotenv()
 
-# Load the tokenizer and model from HuggingFace Transformers
-tokenizer = AutoTokenizer.from_pretrained(model_name)
-model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
-
-# Creating a text2text-generation pipeline with the loaded model and tokenizer
-pipe = pipeline(
-    "text2text-generation",
-    model=model,
-    tokenizer=tokenizer,
-    max_length=512 
+# Initialize Groq LLM for query responses
+llm = ChatGroq(
+    model="llama-3.1-8b-instant",  # or "mixtral-8x7b-32768"
+    temperature=0.7,
+    max_tokens=512
 )
 
-llm = HuggingFacePipeline(pipeline=pipe)
 
-def trim_context_to_token_limit(docs, tokenizer, max_tokens:int):
+def trim_context_to_token_limit(docs, max_chars:int = 3000):
     """
-    Trims the provided documents so that their combined token count does not exceed max_tokens.
+    Trims the provided documents so that their combined character count does not exceed max_chars.
 
     Args:
         docs (list): List of documents, each with or without a 'page_content' attribute or as a string.
-        tokenizer (transformers.PreTrainedTokenizer): Tokenizer to count tokens.
-        max_tokens (int): Maximum allowed number of tokens in the combined context.
+        max_chars (int): Maximum allowed number of characters in the combined context. Defaults to 3000.
 
     Returns:
-        str: Concatenated document texts, trimmed to fit within the token limit.
+        str: Concatenated document texts, trimmed to fit within the character limit.
     """
     context = ""
-    total_tokens = 0
+    total_chars = 0
 
     for doc in docs:
         doc_text = doc.page_content.strip() if hasattr(doc, 'page_content') else str(doc)
-        doc_tokens = tokenizer(doc_text, return_tensors='pt', truncation=False)['input_ids'][0]
-        if total_tokens + len(doc_tokens) <= max_tokens:
+        if total_chars + len(doc_text) <= max_chars:
             context += doc_text + "\n\n"
-            total_tokens += len(doc_tokens)
+            total_chars += len(doc_text)
         else:
             break
     return context.strip()
@@ -51,7 +40,7 @@ def trim_context_to_token_limit(docs, tokenizer, max_tokens:int):
 def get_query_response(query:str)-> str:
     """
     Processes a user query by retrieving relevant documents, constructing a prompt,
-    and generating a response using a language model.
+    and generating a response using the Groq API.
 
     Args:
         query (str): The user's question.
@@ -62,14 +51,14 @@ def get_query_response(query:str)-> str:
     from storage_and_retrieval import db
     from storage_and_retrieval import retriever
     results = retriever.get_relevant_documents(query)
-    context = trim_context_to_token_limit(results, tokenizer, 512)
+    context = trim_context_to_token_limit(results, max_chars=3000)
+    
     prompt_template = PromptTemplate(
         input_variables=["context", "question"],
         template="""
         Use the following context to answer the question at the end. 
-        Even if the question is not directly answered in the context, say "It's not clearly mentioned but my best guess is"
-        and use the context to provide a guess.
-        Give a detailed answer based on the context provided.
+        Even if the question is not directly answered in the context, give an answer based on your knowledge.
+        Give a detailed answer based on the context provided. Don't say anything else only the answer itself.
         Context:
         {context}
 
@@ -80,16 +69,12 @@ def get_query_response(query:str)-> str:
     )
     print("Context length:", len(context.split()))
 
-    rag_chain = LLMChain(
-        llm=llm,
-        prompt=prompt_template
-    )
-    print("Running RAG chain...")
-    response = rag_chain.run({
-        "context": context,
-        "question": query
-    })
+    # Format the prompt with context and query
+    formatted_prompt = prompt_template.format(context=context, question=query)
+    
+    print("Running RAG query with Groq API...")
+    response = llm.invoke(formatted_prompt)
 
-    return response
+    return response.content if response.content else response
 
 
