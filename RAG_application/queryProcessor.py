@@ -1,6 +1,6 @@
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer, pipeline
-from langchain.llms import HuggingFacePipeline
-from langchain.prompts import PromptTemplate
+from langchain_community.llms import HuggingFacePipeline
+from langchain_core.prompts import PromptTemplate
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 from storage_and_retrieval import embedding_model
