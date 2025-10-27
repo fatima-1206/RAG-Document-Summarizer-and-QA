@@ -7,7 +7,7 @@ bash_kernel
 langchain
 langchain_experimental==0.3
 langchain_community
-# langchain_openai
+langchain_groq
 
 # Document reading & web scraping
 pdfplumber
@@ -20,13 +20,12 @@ tqdm
 
 # Sentence embeddings and transformer models
 sentence-transformers
-transformers
-accelerate
 
 # Vector database for semantic search
 chromadb
 
-hf_xet
+# Environment variables management
+python-dotenv
 
 numpy
 scikit-learn
@@ -34,3 +33,4 @@ scikit-learn
 # GUI toolkit for Python
 tk
 streamlit
+

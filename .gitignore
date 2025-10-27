@@ -7,7 +7,7 @@ __pycache__/
 myvenv/
 .env/
 .venv/
-
+/.env
 
 # ChromaDB files
 chroma_store/
@@ -18,7 +18,8 @@ chroma_storage/
 
 # VS Code settings
 .vscode/
-
+RAG_application/.env
+*/.env
 
 # Distribution / packaging
 build/
