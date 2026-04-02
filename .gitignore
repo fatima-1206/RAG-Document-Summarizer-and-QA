@@ -7,7 +7,6 @@ __pycache__/
 myvenv/
 .env/
 .venv/
-/.env
 
 # ChromaDB files
 chroma_store/
@@ -17,7 +16,6 @@ chroma_storage/
 .ipynb_checkpoints
 
 # VS Code settings
-.vscode/
 RAG_application/.env
 */.env
 
@@ -48,3 +46,5 @@ tokenizers_cache/
 
 # instruction files
 problemStatement.md
+config.bat
+node_modules
